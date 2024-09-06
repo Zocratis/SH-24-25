@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Museum Ticketing Chatbot</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-image: url('Background.jpg');
+            background-position: center;
+            background-size: cover;
+        }
+        .chatbot-container {
+            width: 500px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            background: linear-gradient(135deg, #381d01, #381d01);
+            color: #ffffff;
+            text-align: center;
+            padding: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .chatbox {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f9f9f9;
+            border-bottom: 1px solid #ddd;
+        }
+        .message {
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            max-width: 80%;
+            display: inline-block;
+            clear: both;
+        }
+        .bot-message {
+            background-color: #e0e0e0;
+            color: #333;
+            text-align: left;
+            float: left;
+            margin-right: auto;
+        }
+        .user-message {
+            background-color: #552401;
+            color: white;
+            text-align: right;
+            float: right;
+            margin-left: auto;
+        }
+        .input-area {
+            padding: 10px;
+            background: #ffffff;
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .input-area input {
+            width: 80%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .input-area button {
+            background-color: #552300;
+            color: #ffffff;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .input-area input:focus {
+            outline: none;
+        }
+        .input-area button:focus {
+            outline: none;
+        }
+        .hidden {
+            display: none;
+        }
+        .next-button {
+            background-color: #552300;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+        .option-container {
+            display: flex;
+            flex-direction: column;
+        }
+        .option-label {
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .qr-code {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+        }
+        #qrcode {
+            width: 100%;
+            max-width: 200px;
+            height: auto;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+<div class="chatbot-container">
+    <div class="header">Museum Ticketing Chatbot</div>
+    <div class="chatbox" id="chatbox">
+        <div class="message bot-message">Welcome to the Museum Ticketing System! Please select your language.</div>
+        <div class="message bot-message" id="language-selection">
+            <div class="option-container">
+                <label class="option-label">
+                    <input type="radio" name="language" value="English"> English
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="language" value="Hindi"> Hindi
+                </label>
+                <label class="option-label">
+                    <input type="radio" name="language" value="Marathi"> Marathi
+                </label>
+                <button class="next-button" onclick="selectLanguage()">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="input-area hidden" id="input-area">
+        <input type="text" id="user-input" placeholder="Type your response here..." autofocus>
+        <button onclick="handleInput()">Send</button>
+    </div>
+</div>
+
+<script>
+    const chatbox = document.getElementById('chatbox');
+    const inputArea = document.getElementById('input-area');
+    const userInput = document.getElementById('user-input');
+    let step = 0;
+    let selectedLanguage = '';
+    let selectedMuseum = '';
+    let ticketData = { Senior: 0, Adult: 0, Child: 0 };
+
+    const prices = {
+        'Chhatrapati Shivaji Maharaj Vastu Sangrahalaya': { Senior: 50, Adult: 80, Child: 30 },
+        'Dr. Bhau Daji Lad Museum': { Senior: 45, Adult: 75, Child: 25 },
+        'Nehru Science Centre': { Senior: 55, Adult: 85, Child: 35 },
+        'RBI Monetary Museum': { Senior: 50, Adult: 80, Child: 30 },
+        'Mani Bhavan Gandhi Museum': { Senior: 60, Adult: 100, Child: 50 }
+    };
+
+    function selectLanguage() {
+        const selectedLang = document.querySelector('input[name="language"]:checked');
+        if (selectedLang) {
+            selectedLanguage = selectedLang.value;
+            addBotMessage(`You've selected ${selectedLanguage}. Please enter your name.`);
+            document.getElementById('language-selection').classList.add('hidden');
+            inputArea.classList.remove('hidden');
+            step = 1;
+            userInput.focus();
+        } else {
+            alert("Please select a language.");
+        }
+    }
+
+    function handleInput() {
+        const userResponse = userInput.value.trim();
+        if (userResponse === "") return;
+
+        addUserMessage(userResponse);
+
+        switch (step) {
+            case 1:
+                addBotMessage('Thank you! Please enter your phone number.');
+                step = 2;
+                break;
+            case 2:
+                addBotMessage('Got it! Now, please enter your email address.');
+                step = 3;
+                break;
+            case 3:
+                displayMuseumOptions();
+                step = 4;
+                break;
+            case 4:
+                selectMuseum();
+                break;
+            case 5:
+                showTicketTable();
+                step = 6;
+                break;
+            case 6:
+                calculateTotal();
+                break;
+            case 7:
+                displayPaymentOptions();
+                break;
+            case 8:
+                showQRCodeSection();
+                break;
+        }
+
+        userInput.value = "";
+        userInput.focus();
+    }
+
+    function displayMuseumOptions() {
+        addBotMessage('Which museum would you like to visit?');
+        const museums = ['Chhatrapati Shivaji Maharaj Vastu Sangrahalaya', 'Dr. Bhau Daji Lad Museum', 'Nehru Science Centre', 'RBI Monetary Museum', 'Mani Bhavan Gandhi Museum'];
+        const optionContainer = document.createElement('div');
+        optionContainer.classList.add('option-container');
+
+        museums.forEach(museum => {
+            const optionLabel = document.createElement('label');
+            optionLabel.classList.add('option-label');
+            optionLabel.innerHTML = `<input type="radio" name="museum" value="${museum}"> ${museum}`;
+            optionContainer.appendChild(optionLabel);
+        });
+
+        const nextButton = document.createElement('button');
+        nextButton.classList.add('next-button');
+        nextButton.textContent = 'Next';
+        nextButton.onclick = selectMuseum;
+
+        const botMessage = document.createElement('div');
+        botMessage.classList.add('message', 'bot-message');
+        botMessage.appendChild(optionContainer);
+        botMessage.appendChild(nextButton);
+        chatbox.appendChild(botMessage);
+    }
+
+    function selectMuseum() {
+        const selectedMuseumInput = document.querySelector('input[name="museum"]:checked');
+        if (selectedMuseumInput) {
+            selectedMuseum = selectedMuseumInput.value;
+            addBotMessage(`You have selected ${selectedMuseum}. Please choose your ticket quantity.`);
+            showTicketTable();
+        } else {
+            addBotMessage('Please select a museum.');
+        }
+    }
+
+    function showTicketTable() {
+        const table = document.createElement('table');
+        table.innerHTML = `
+            <tr>
+                <th>Type</th>
+                <th>Price</th>
+                <th>Quantity</th>
+            </tr>
+            <tr>
+                <td>Senior</td>
+                <td>₹${prices[selectedMuseum].Senior}</td>
+                <td><input type="number" id="seniorQuantity" min="0" value="0"></td>
+            </tr>
+            <tr>
+                <td>Adult</td>
+                <td>₹${prices[selectedMuseum].Adult}</td>
+                <td><input type="number" id="adultQuantity" min="0" value="0"></td>
+            </tr>
+            <tr>
+                <td>Child</td>
+                <td>₹${prices[selectedMuseum].Child}</td>
+                <td><input type="number" id="childQuantity" min="0" value="0"></td>
+            </tr>
+        `;
+
+        const nextButton = document.createElement('button');
+        nextButton.classList.add('next-button');
+        nextButton.textContent = 'Next';
+        nextButton.onclick = calculateTotal;
+
+        const botMessage = document.createElement('div');
+        botMessage.classList.add('message', 'bot-message');
+        botMessage.appendChild(table);
+        botMessage.appendChild(nextButton);
+        chatbox.appendChild(botMessage);
+    }
+
+    function calculateTotal() {
+        const seniorQuantity = parseInt(document.getElementById('seniorQuantity').value);
+        const adultQuantity = parseInt(document.getElementById('adultQuantity').value);
+        const childQuantity = parseInt(document.getElementById('childQuantity').value);
+
+        const totalAmount = (seniorQuantity * prices[selectedMuseum].Senior) +
+                            (adultQuantity * prices[selectedMuseum].Adult) +
+                            (childQuantity * prices[selectedMuseum].Child);
+
+        addBotMessage(`The total amount for your tickets is ₹${totalAmount}. Proceeding to payment.`);
+        displayPaymentOptions();
+    }
+
+    function displayPaymentOptions() {
+        const paymentOptions = `
+            <div class="option-container">
+                <label class="option-label"><input type="radio" name="paymentMode" value="UPI"> UPI</label>
+                <label class="option-label"><input type="radio" name="paymentMode" value="Net Banking"> Net Banking</label>
+                <label class="option-label"><input type="radio" name="paymentMode" value="Credit/Debit Card"> Credit/Debit Card</label>
+            </div>
+            <button class="next-button" onclick="processPayment()">Proceed to Pay</button>
+        `;
+
+        addBotMessage(paymentOptions);
+    }
+
+    function processPayment() {
+        const selectedPaymentMode = document.querySelector('input[name="paymentMode"]:checked');
+        if (selectedPaymentMode) {
+            addBotMessage(`Payment successful using ${selectedPaymentMode.value}. Generating QR code...`);
+            showQRCodeSection();
+        } else {
+            addBotMessage('Please select a payment mode.');
+        }
+    }
+
+    function showQRCodeSection() {
+        const qrContainer = document.createElement('div');
+        qrContainer.classList.add('qr-code');
+        qrContainer.innerHTML = '<div id="qrcode"></div>';
+
+        chatbox.appendChild(qrContainer);
+
+        const qrcode = new QRCode(document.getElementById("qrcode"), {
+            text: "Your Ticket QR Code",
+            width: 128,
+            height: 128
+        });
+    }
+    function showQRCodeSection() {
+        addBotMessage('Payment successful! Generating your QR code...');
+ 
+        // Simulate QR code generation and display
+        setTimeout(() => {
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent('Ticket Information: ' + JSON.stringify(ticketData))}`;
+            const qrCodeImage = document.createElement('img');
+            qrCodeImage.src = qrCodeUrl;
+            qrCodeImage.alt = 'QR Code';
+ 
+            const qrCodeMessage = document.createElement('div');
+            qrCodeMessage.classList.add('message', 'bot-message', 'qr-code');
+            qrCodeMessage.innerHTML = `
+                <p>Your QR code has been generated:</p>
+                <img src="${qrCodeUrl}" alt="QR Code">
+                <p>You will receive the QR code at your email ID and phone number.</p>
+            `;
+            chatbox.appendChild(qrCodeMessage);
+        }, 2000);
+    }
+ 
+
+    function addUserMessage(text) {
+        const userMessage = document.createElement('div');
+        userMessage.classList.add('message', 'user-message');
+        userMessage.textContent = text;
+        chatbox.appendChild(userMessage);
+        chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    function addBotMessage(text) {
+        const botMessage = document.createElement('div');
+        botMessage.classList.add('message', 'bot-message');
+        botMessage.innerHTML = text;
+        chatbox.appendChild(botMessage);
+        chatbox.scrollTop = chatbox.scrollHeight;
+    }
+</script>
+</body>
+</html>
